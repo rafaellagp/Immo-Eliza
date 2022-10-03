@@ -17,6 +17,7 @@ rlock = RLock()
 def doesFileExists(filePathAndName):
     return os.path.exists(filePathAndName)
 
+
 houses_url = "https://www.immoweb.be/en/search/house/for-sale?countries=BE"
 apart_url = "https://www.immoweb.be/en/search/apartment/for-sale?countries=BE"
 search1_url = "https://www.immoweb.be/en/search/house-and-apartment/for-sale?countries=BE&propertySubtypes=BUNGALOW,CASTLE,COUNTRY_COTTAGE,APARTMENT_BLOCK,TOWN_HOUSE,VILLA,MANOR_HOUSE,GROUND_FLOOR,TRIPLEX,PENTHOUSE,KOT&page=1&orderBy=relevance"
@@ -28,14 +29,14 @@ start_time = time.time()
 def create_driver():
     driver_path = "/home/antoine/VS Code Projects/BXL-Bouman-5-Antoine/content/0.projects/2.immo_eliza/geckodriver"
     firefoxOptions = webdriver.FirefoxOptions()
-    # firefoxOptions.headless = True
+    firefoxOptions.headless = True
 
     return webdriver.Firefox(executable_path=driver_path, options=firefoxOptions)
 
 driver = create_driver()
 
-def go_to_first_listing(type_of_listing):
-    driver.get(type_of_listing)
+def go_to_first_listing():
+    driver.get("https://www.immoweb.be/en/search/house-and-apartment/for-sale?countries=BE")
     try:
         cookie_button = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, "//button[@id='uc-btn-accept-banner']")))
         cookie_button.click()
@@ -53,16 +54,16 @@ def split_url():
 def get_house_info():
     
     list_from_url = split_url()
-    print(list_from_url)
+    # print(list_from_url)
     house_id = list_from_url[9]
     
-    if not doesFileExists("test.csv"):
-        pd.DataFrame({}).to_csv("test.csv")
+    if not doesFileExists("test_next.csv"):
+        pd.DataFrame({}).to_csv("test_next.csv")
     
-    output = pd.read_csv("test.csv")
+    output = pd.read_csv("test_next.csv")
 
 
-    with open('test.csv', 'r') as fp:
+    with open('test_next.csv', 'r') as fp:
         s = fp.read()
     if house_id not in s:
         post_code = list_from_url[8]
@@ -96,61 +97,20 @@ def get_house_info():
 
         df_dictionary = pd.DataFrame([house_dict])
         output = pd.concat([output, df_dictionary],ignore_index=True)
-        output.to_csv("test.csv", index=False)
+        output.to_csv("test_next.csv", index=False)
 
     next_button = driver.find_element(By.XPATH, "/html/body/div[1]/div[1]/div/div/main/div[1]/div[2]/div/div/div[1]/div/div[1]/ul/li[2]/a/span[2]").click()
     return
 
-def scraping(url):
+def scraping():
 
-    with rlock:
-        # driver = create_driver()
-        driver.execute_script(f"window.open('{url}')")
-        driver.switch_to.window(driver.window_handles[url_list.index(url)])
-        go_to_first_listing(url)
-        print('listing search: ',url)
-
+    go_to_first_listing()
     
     for i in range(10):
         get_house_info()
         print(f'house number {i} register at time: {"--- %s seconds ---" % (time.time() - start_time)}')
     driver.quit()
-    return url
 
-# for url in url_list:
-#     scraping(url)
-
-# gen = map(scraping,url_list)
-
-# with mp.Pool() as pool:
-#     tuple(pool.map(scraping,url_list))
-
-
-# processes = [] 
-# for url in url_list: # each thread a new 'click' 
-#     ps = mp.Process(target=scraping, args=(url,))    
-#     ps.start() # could sleep 1 between 'clicks' with `time.sleep(1)``
-#     processes.append(ps)        
-# for ps in processes:
-#     ps.join() # Main wait for processes finish
-
-# if __name__ == '__main__':
-
-
-
-threads = list()
-
-for url in url_list:
-    thread = Thread(target=scraping, args=(url,))
-    threads.append(thread)
-
-for thread in threads:
-    thread.start()
-
-for thread in threads:
-    thread.join()
-
-# rlock = mp.RLock()
-
+scraping()
 
 print("--- %s seconds ---" % (time.time() - start_time))

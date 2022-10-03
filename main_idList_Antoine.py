@@ -13,7 +13,7 @@ import multiprocessing as mp
 import requests
 import json
 
-number_of_entries = 10
+number_of_entries = 100
 
 start_time = time.time()
 
@@ -89,9 +89,10 @@ def get_all_ids(number_of_ids):
     
     return id_list
 
+driver = create_driver()
 def house_scraping(id):
 
-    driver = create_driver()
+    # driver = create_driver()
 
     driver.get("https://www.immoweb.be/en/classified/"+id)
     
@@ -127,31 +128,35 @@ def house_scraping(id):
     return house_dict
 
 def add_to_csv():
-    output = pd.read_csv("test.csv")
-    df_dictionary = pd.read_json("new_entries_dict.json") 
-    output = pd.concat([output, df_dictionary],ignore_index=True) # global dataframe is updated by concatenating the new entry to the existing file
-    output.to_csv("test.csv", index=False)
+    if not doesFileExists("test.csv"):
+        df_dictionary = pd.read_json("new_entries_dict.json")
+        df_dictionary.to_csv("test.csv")
+    else:
+        output = pd.read_csv("test.csv")
+        df_dictionary = pd.read_json("new_entries_dict.json")
+        output = pd.concat([output, df_dictionary],ignore_index=True) # global dataframe is updated by concatenating the new entry to the existing file
+        output.to_csv("test.csv", index=False)
 
 
 
 def get_houses_info(number_of_entries):
     
-    if not doesFileExists("test.csv"):
-        df = pd.DataFrame()
-    else:    
-        df = pd.read_csv("test.csv")
-
     id_list = set(get_all_ids(number_of_entries))
     print("ids list length= ",len(id_list))
 
-    new_id_list = list(id_list - set(df["id"]))[:number_of_entries]
-    print(new_id_list)
+    if not doesFileExists("test.csv"):
+        new_id_list = [id_list][:number_of_entries]
+    else:    
+        df = pd.read_csv("test.csv")
+        new_id_list = list(id_list - set(df["id"]))[:number_of_entries]
+
+    # print(new_id_list)
     print("new id list length= ",len(new_id_list))
 
     with mp.Pool() as pool:
         new_entries = list(pool.map(house_scraping, new_id_list))
-        out_file = open("new_entries_dict.json", "w")
-        json.dump(new_entries,out_file)
+        with open("new_entries_dict.json", "w") as out_file:
+            json.dump(new_entries,out_file)
     
     add_to_csv()
 
