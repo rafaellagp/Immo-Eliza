@@ -1,5 +1,5 @@
 # Immo-Eliza
-Machine Learning model to make price predictions on real estate sales in Belgium
+Machine Learning model for price predictions of real estate in Belgium
 
 
 
